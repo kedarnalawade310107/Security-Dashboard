@@ -1,0 +1,78 @@
+Personal Security Dashboard
+A web-based security tool built with Python and Flask that analyzes password strength and checks credentials against known data breach databases — privately and securely.
+Live demo: (add your link here after deploying)
+Built by: Kedar Rohan Nalawade
+
+What It Does
+
+Password Strength Analysis — scores passwords across 6 security criteria including length, character variety, and common password detection
+Data Breach Check — queries the HaveIBeenPwned database to check if a password has appeared in any known breach (over 800 million compromised passwords)
+Security Recommendations — generates tailored advice based on weaknesses found
+Privacy-first design — your password is never transmitted. Uses the k-anonymity model (only a partial SHA-1 hash prefix is sent to the API)
+
+
+Security Concepts Demonstrated
+ConceptImplementationPassword hashingSHA-1 via Python hashlibK-anonymityOnly first 5 chars of hash sent to HaveIBeenPwned APIInput validationServer-side regex checks for character classesEntropy analysisScoring across length, uppercase, lowercase, digits, symbolsThreat intelligenceIntegration with HaveIBeenPwned Pwned Passwords APISecure API designRESTful Flask endpoint, JSON request/response
+
+Tech Stack
+
+Backend: Python 3, Flask
+Frontend: HTML5, CSS3, Vanilla JavaScript
+API: HaveIBeenPwned Pwned Passwords (k-anonymity endpoint)
+Security: SHA-1 hashing, regex-based entropy analysis
+
+
+How to Run Locally
+1. Clone the repository
+bashgit clone https://github.com/yourusername/security-dashboard.git
+cd security-dashboard
+2. Create and activate a virtual environment
+bash# Windows
+python -m venv venv
+venv\Scripts\activate
+
+# Mac/Linux
+python3 -m venv venv
+source venv/bin/activate
+3. Install dependencies
+bashpip install flask requests
+4. Run the app
+bashpython app.py
+5. Open in your browser
+http://127.0.0.1:5000
+
+Project Structure
+security-dashboard/
+├── app.py              # Flask backend — password analysis & API logic
+├── templates/
+│   └── index.html      # Frontend UI
+├── static/
+│   └── style.css       # Styling
+└── README.md
+
+How the Breach Check Works (K-Anonymity)
+This project uses a privacy-preserving technique called k-anonymity to check passwords against breach databases without exposing the actual password:
+
+The password is hashed locally using SHA-1
+Only the first 5 characters of that hash are sent to the HaveIBeenPwned API
+The API returns all hash suffixes that match that prefix (hundreds of results)
+The full hash is matched locally — the real password never leaves your machine
+
+This is the same method used by major browsers and password managers like 1Password.
+
+What I Learned
+
+How password entropy works and what makes credentials resistant to brute-force attacks
+The k-anonymity privacy model and why it matters in security tooling
+How to build and consume RESTful APIs securely in Python
+Flask routing, JSON handling, and serving static assets
+Why credential stuffing is dangerous and how breach databases help defend against it
+
+
+Future Improvements
+
+ Add email breach checking (requires HaveIBeenPwned API key)
+ Generate a downloadable security report (PDF)
+ Add a password generator tool
+ Deploy to cloud (Render / Railway) for public access
+ Add rate limiting to the API endpoint
