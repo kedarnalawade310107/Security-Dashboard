@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Security Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+  <div class="scanline"></div>
+
+  <header>
+    <div class="logo">
+      <span class="bracket">[</span>SEC<span class="accent">_</span>DASHBOARD<span class="bracket">]</span>
+    </div>
+    <div class="status-bar">
+      <span class="dot"></span> SYSTEM ONLINE
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>Your Personal<br><span class="highlight">Security Audit</span></h1>
+      <p class="subtitle">Analyze passwords for weaknesses and check if they've appeared in known data breaches — all privately, in your browser.</p>
+    </section>
+
+    <section class="card" id="password-section">
+      <div class="card-label">// MODULE 01 — PASSWORD ANALYZER</div>
+      <h2>Check a Password</h2>
+      <p class="card-desc">We never store or transmit your password. The breach check uses a secure <a href="https://en.wikipedia.org/wiki/K-anonymity" target="_blank">k-anonymity</a> method — only a partial hash is sent.</p>
+
+      <div class="input-row">
+        <input type="password" id="password-input" placeholder="Enter a password to analyze..." autocomplete="off"/>
+        <button id="toggle-visibility" class="icon-btn" title="Show/hide password">👁</button>
+        <button id="check-btn" class="primary-btn">ANALYZE</button>
+      </div>
+
+      <div id="results" class="results hidden">
+
+        <div class="result-block">
+          <div class="result-label">STRENGTH</div>
+          <div class="strength-display">
+            <span id="strength-label" class="strength-label">—</span>
+            <div class="strength-bar-track">
+              <div id="strength-bar" class="strength-bar"></div>
+            </div>
+            <span id="strength-score" class="strength-score">0/6</span>
+          </div>
+        </div>
+
+        <div class="result-block" id="issues-block">
+          <div class="result-label">WEAKNESSES FOUND</div>
+          <ul id="issues-list" class="issues-list"></ul>
+        </div>
+
+        <div class="result-block" id="breach-block">
+          <div class="result-label">BREACH DATABASE</div>
+          <div id="breach-result" class="breach-result"></div>
+        </div>
+
+        <div class="result-block">
+          <div class="result-label">RECOMMENDATIONS</div>
+          <ul id="tips-list" class="tips-list"></ul>
+        </div>
+
+      </div>
+
+      <div id="loading" class="loading hidden">
+        <span class="spinner"></span> Scanning breach database...
+      </div>
+    </section>
+
+    <section class="info-grid">
+      <div class="info-card">
+        <div class="info-icon">🔐</div>
+        <h3>K-Anonymity</h3>
+        <p>Your password is hashed using SHA-1. Only the first 5 characters of that hash are sent to the API — making it impossible to reconstruct your password.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-icon">🛡️</div>
+        <h3>Entropy Matters</h3>
+        <p>Password strength comes from unpredictability. Length and character variety create exponentially more possible combinations for attackers to guess.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-icon">⚠️</div>
+        <h3>Reuse is Dangerous</h3>
+        <p>If one site leaks your password, attackers try it everywhere. Use a unique password for every account, stored in a password manager.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Built with Flask + HaveIBeenPwned API · <span class="accent">No data is stored.</span></p>
+  </footer>
+
+  <script>
+    const passwordInput = document.getElementById('password-input');
+    const checkBtn = document.getElementById('check-btn');
+    const toggleBtn = document.getElementById('toggle-visibility');
+    const results = document.getElementById('results');
+    const loading = document.getElementById('loading');
+
+    toggleBtn.addEventListener('click', () => {
+      passwordInput.type = passwordInput.type === 'password' ? 'text' : 'password';
+    });
+
+    checkBtn.addEventListener('click', analyzePassword);
+    passwordInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') analyzePassword();
+    });
+
+    async function analyzePassword() {
+      const password = passwordInput.value;
+      if (!password) return;
+
+      results.classList.add('hidden');
+      loading.classList.remove('hidden');
+
+      try {
+        const response = await fetch('/api/check-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+        const data = await response.json();
+        displayResults(data);
+      } catch (err) {
+        alert('Something went wrong. Make sure the Flask server is running.');
+      } finally {
+        loading.classList.add('hidden');
+      }
+    }
+
+    function displayResults(data) {
+      const { strength, pwned_count } = data;
+
+      // Strength label + bar
+      const strengthLabel = document.getElementById('strength-label');
+      const strengthBar = document.getElementById('strength-bar');
+      const strengthScore = document.getElementById('strength-score');
+
+      strengthLabel.textContent = strength.strength;
+      strengthLabel.className = 'strength-label ' + strength.strength.toLowerCase();
+      const pct = (strength.score / strength.max_score) * 100;
+      strengthBar.style.width = pct + '%';
+      strengthBar.className = 'strength-bar ' + strength.strength.toLowerCase();
+      strengthScore.textContent = `${strength.score}/${strength.max_score}`;
+
+      // Issues
+      const issuesList = document.getElementById('issues-list');
+      const issuesBlock = document.getElementById('issues-block');
+      issuesList.innerHTML = '';
+      if (strength.issues.length === 0) {
+        issuesBlock.classList.add('hidden');
+      } else {
+        issuesBlock.classList.remove('hidden');
+        strength.issues.forEach(issue => {
+          const li = document.createElement('li');
+          li.textContent = issue;
+          li.classList.add('issue');
+          issuesList.appendChild(li);
+        });
+      }
+
+      // Breach result
+      const breachResult = document.getElementById('breach-result');
+      if (pwned_count === null) {
+        breachResult.innerHTML = `<span class="breach-unknown">⚠ Could not reach breach database. Check your internet connection.</span>`;
+      } else if (pwned_count === 0) {
+        breachResult.innerHTML = `<span class="breach-safe">✔ Not found in any known breach. Good news!</span>`;
+      } else {
+        breachResult.innerHTML = `<span class="breach-danger">✘ Found <strong>${pwned_count.toLocaleString()}</strong> times in known data breaches. Do not use this password.</span>`;
+      }
+
+      // Tips
+      const tipsList = document.getElementById('tips-list');
+      tipsList.innerHTML = '';
+      strength.tips.forEach(tip => {
+        const li = document.createElement('li');
+        li.textContent = tip;
+        tipsList.appendChild(li);
+      });
+
+      results.classList.remove('hidden');
+      results.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  </script>
+
+</body>
+</html>
